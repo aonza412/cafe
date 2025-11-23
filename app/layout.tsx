@@ -7,18 +7,18 @@ const inter = Inter({ subsets: ["latin"] });
 // --- ส่วนสำคัญ: การตั้งค่า SEO และ Social Share ---
 export const metadata: Metadata = {
   // 1. ข้อมูลพื้นฐานสำหรับ Google
-  title: "My Story Platform - บันทึกเรื่องราวและการเดินทาง",
+  title: "ตะลึงตะลุง คาเฟ่",
   description:
     "เว็บไซต์เล่าเรื่องราว ประสบการณ์ และความทรงจำ ผ่านภาพถ่ายและตัวอักษร",
   keywords: ["blog", "story", "travel", "portfolio", "nextjs", "firebase"],
-  authors: [{ name: "ชื่อของคุณ" }],
+  authors: [{ name: "ตะลึงตะลุง" }],
 
   // 2. ข้อมูลสำหรับ Facebook / Line / Discord (Open Graph)
   openGraph: {
     title: "ตะลึงตะลุง คาเฟ่",
     description: "เข้ามาอ่านเรื่องราวที่น่าสนใจ และดูอัลบั้มภาพสวยๆ ได้ที่นี่",
-    url: "https://ชื่อเว็บของคุณ.web.app", // ใส่ URL จริงตอน Deploy เสร็จ
-    siteName: "My Story Platform",
+    url: "cafe-seven-nu.vercel.app", // ใส่ URL จริงตอน Deploy เสร็จ
+    siteName: "ตะลึงตะลุง คาเฟ่",
     images: [
       {
         url: "https://placehold.co/1200x630/png", // *** สำคัญ: รูปที่จะโชว์เวลาแชร์ลิงก์ (ขนาดแนะนำ 1200x630) ***

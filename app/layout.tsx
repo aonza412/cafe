@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   keywords: ["blog", "story", "travel", "portfolio", "nextjs", "firebase"],
   authors: [{ name: "ตะลึงตะลุง" }],
   verification: {
-    google: "6BtGXt4gSLnFYcZZkxCWlQKMeefFwtss_9E3GlvHHNk",
+    google: "iw5-Z-JjI9Vmi8rUi4OyN0Cn-SOCTBLDHusXJYkYl_M",
   },
-  // <meta name="google-site-verification" content="6BtGXt4gSLnFYcZZkxCWlQKMeefFwtss_9E3GlvHHNk" />
+  // <meta name="google-site-verification" content="iw5-Z-JjI9Vmi8rUi4OyN0Cn-SOCTBLDHusXJYkYl_M" />
 
   // 2. ข้อมูลสำหรับ Facebook / Line / Discord (Open Graph)
   openGraph: {

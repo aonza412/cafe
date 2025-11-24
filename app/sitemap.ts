@@ -8,7 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: baseUrl,
       lastModified: new Date(),
-      changeFrequency: "daily",
+      changeFrequency: "weekly",
       priority: 1,
     },
     // ถ้าอยากให้ Google เจอหน้ารองอื่นๆ ก็เพิ่มตรงนี้ได้

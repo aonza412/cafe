@@ -30,6 +30,7 @@ type StorySection = {
   imagePublicId?: string;
   imagePosition: "left" | "right";
   imageShape: ShapeType;
+  gallery?: string[];
 };
 type SocialLinks = {
   facebook: string;
@@ -38,15 +39,12 @@ type SocialLinks = {
   map: string;
 };
 type AlbumImage = { id: string; url: string; publicId?: string };
-
-// *** TYPE ใหม่สำหรับ Slider Item ***
-// เก็บได้ทั้ง URL (รูปเก่า) และ File (รูปใหม่รออัปโหลด)
 type SliderItem = {
   id: string;
-  url: string; // ถ้าเป็นรูปใหม่ จะเป็น blob:..., ถ้าเก่าจะเป็น https://...
-  publicId?: string; // มีเฉพาะรูปเก่า
-  file?: Blob; // มีเฉพาะรูปใหม่
-  isNew?: boolean; // true = รออัปโหลด
+  url: string;
+  publicId?: string;
+  file?: Blob;
+  isNew?: boolean;
 };
 
 const defaultSections: StorySection[] = [
@@ -73,14 +71,12 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   // Data States
+  const [heroTitle, setHeroTitle] = useState("The Stories"); // <--- (ใหม่) เก็บชื่อหัวข้อหลัก
   const [sections, setSections] = useState<StorySection[]>([]);
   const [album, setAlbum] = useState<AlbumImage[]>([]);
   const [socials, setSocials] = useState<SocialLinks>(defaultSocials);
 
-  // *** STATE ใหม่: Main Slider (เก็บรูปสไลด์หลัก) ***
   const [mainSlider, setMainSlider] = useState<SliderItem[]>([]);
-
-  // *** STATE ใหม่: Pending Deletes (เก็บรายชื่อ ID รูปที่ "รอการลบ") ***
   const [pendingDeletes, setPendingDeletes] = useState<string[]>([]);
 
   const [showUploader, setShowUploader] = useState(false);
@@ -96,7 +92,8 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (currentUser?.email === "uthaipan.aon@gmail.com") setIsRealAdmin(true);
+      if (currentUser?.email === "uthaipan.aon@gmail.com")
+        setIsRealAdmin(true); // <--- เช็คเมลคุณ
       else {
         setIsRealAdmin(false);
         setIsEditing(false);
@@ -108,7 +105,6 @@ export default function Home() {
         const contentSnap = await getDoc(contentRef);
         if (contentSnap.exists()) {
           setSections(contentSnap.data().sections || defaultSections);
-          // ดึง Slider ถ้ามี
           setMainSlider(contentSnap.data().mainSlider || []);
         } else {
           setSections(defaultSections);
@@ -116,10 +112,15 @@ export default function Home() {
         const albumRef = doc(db, "pages", "album");
         const albumSnap = await getDoc(albumRef);
         if (albumSnap.exists()) setAlbum(albumSnap.data().images || []);
+
+        // Fetch Settings & Hero Title
         const settingsRef = doc(db, "pages", "settings");
         const settingsSnap = await getDoc(settingsRef);
-        if (settingsSnap.exists())
-          setSocials(settingsSnap.data().socials || defaultSocials);
+        if (settingsSnap.exists()) {
+          const data = settingsSnap.data();
+          setSocials(data.socials || defaultSocials);
+          if (data.heroTitle) setHeroTitle(data.heroTitle); // <--- (ใหม่) ดึงค่า Title
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -130,7 +131,6 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  // --- LONG PRESS & LOGIN ---
   const startPress = () => {
     if (user) return;
     timerRef.current = setTimeout(() => {
@@ -158,8 +158,7 @@ export default function Home() {
     window.location.reload();
   };
 
-  // --- LOGIC: DRAFT MODE (จัดการรูปในเครื่อง) ---
-
+  // --- UPLOAD LOGIC ---
   const openUploader = (
     type: "section" | "album" | "main-slider",
     id?: number
@@ -167,38 +166,21 @@ export default function Home() {
     setUploadTarget({ type, id });
     setShowUploader(true);
   };
-
-  // ฟังก์ชันรับไฟล์จาก Uploader (ยังไม่อัปขึ้น Cloud)
   const handleFileSelected = (blob: Blob) => {
     if (!uploadTarget) return;
-    const previewUrl = URL.createObjectURL(blob); // สร้าง URL ชั่วคราวดูในเครื่อง
-
-    // 1. Main Slider: เพิ่มรูปรออัปโหลด
+    const previewUrl = URL.createObjectURL(blob);
     if (uploadTarget.type === "main-slider") {
-      const newItem: SliderItem = {
-        id: Date.now().toString(),
-        url: previewUrl,
-        file: blob, // เก็บไฟล์จริงไว้รออัป
-        isNew: true,
-      };
-      setMainSlider((prev) => [...prev, newItem]);
-    }
-    // 2. Section Cover (เปลี่ยนทันที แต่ยังไม่เซฟลง DB)
-    else if (
+      setMainSlider((prev) => [
+        ...prev,
+        { id: Date.now().toString(), url: previewUrl, file: blob, isNew: true },
+      ]);
+    } else if (
       uploadTarget.type === "section" &&
       typeof uploadTarget.id === "number"
     ) {
-      // ถ้ามีรูปเก่า ให้จำไว้ว่าต้องลบ
       const oldSection = sections.find((s) => s.id === uploadTarget.id);
-      if (oldSection?.imagePublicId) {
+      if (oldSection?.imagePublicId)
         setPendingDeletes((prev) => [...prev, oldSection.imagePublicId!]);
-      }
-      // ** หมายเหตุ: สำหรับ Section และ Album ผมจะใช้วิธีอัปโหลดเลย (Direct Upload) เพื่อความง่ายในโค้ดส่วนนี้
-      // แต่สำหรับ Main Slider จะทำเป็น Draft Mode เต็มรูปแบบตามโจทย์ **
-      // ถ้าอยากให้ Section เป็น Draft ด้วย ต้องแก้โครงสร้างเยอะมาก ขอโฟกัสที่ Main Slider กับการลบก่อนครับ
-
-      // แต่เพื่อไม่ให้หลุด Concept ผมจะอัปโหลดเลยสำหรับ Section (เพราะ Uploader รองรับ 2 โหมด)
-      // เราต้องเรียก API เองตรงนี้
       uploadFileToServer(blob).then(({ url, publicId }) => {
         setSections((prev) =>
           prev.map((s) =>
@@ -208,9 +190,7 @@ export default function Home() {
           )
         );
       });
-    }
-    // 3. Album
-    else if (uploadTarget.type === "album") {
+    } else if (uploadTarget.type === "album") {
       uploadFileToServer(blob).then(({ url, publicId }) => {
         setAlbum((prev) => [
           ...prev,
@@ -218,54 +198,35 @@ export default function Home() {
         ]);
       });
     }
-
     setShowUploader(false);
   };
-
-  // Helper Upload Function (ใช้เมื่อต้องการอัปเลย)
   const uploadFileToServer = async (blob: Blob) => {
     const formData = new FormData();
     formData.append("file", blob, "image.jpg");
     const res = await fetch("/api/upload", { method: "POST", body: formData });
     return await res.json();
   };
-
-  // --- LOGIC: DELETE DRAFT (ลบรูป) ---
-
-  // ลบรูปใน Main Slider
   const removeMainSliderImage = (id: string) => {
-    // หาตัวที่จะลบ
     const item = mainSlider.find((i) => i.id === id);
     if (!item) return;
-
-    if (item.isNew) {
-      // ถ้าเป็นรูปใหม่ (ยังไม่อัป) -> ลบออกจาก State จบ
-      URL.revokeObjectURL(item.url); // คืน memory
-    } else if (item.publicId) {
-      // ถ้าเป็นรูปเก่า (อยู่บน Cloud) -> ยัดลงถังขยะรอเผา (pendingDeletes)
+    if (item.isNew) URL.revokeObjectURL(item.url);
+    else if (item.publicId)
       setPendingDeletes((prev) => [...prev, item.publicId!]);
-    }
-    // ลบออกจากหน้าจอ
     setMainSlider((prev) => prev.filter((i) => i.id !== id));
   };
-
-  // ลบ Section (ต้องจำรูปเก่าไว้ลบด้วย)
   const handleDeleteSection = (id: number) => {
     const s = sections.find((x) => x.id === id);
     if (confirm("ยืนยันลบบทความนี้? (รูปจะถูกลบเมื่อกด Save All)")) {
-      // ถ้ามีรูปจริง ให้ยัดลงถังขยะรอเผา
-      if (s?.imagePublicId) {
+      if (s?.imagePublicId)
         setPendingDeletes((prev) => [...prev, s.imagePublicId!]);
-      }
       setSections((prev) => prev.filter((x) => x.id !== id));
     }
   };
 
-  // --- LOGIC: SAVE ALL (พระเอกของงาน) ---
+  // --- SAVE ALL ---
   const handleSave = async () => {
     setLoading(true);
     try {
-      // 1. จัดการลบรูปเก่า (Process Pending Deletes)
       if (pendingDeletes.length > 0) {
         await Promise.all(
           pendingDeletes.map((pid) =>
@@ -276,24 +237,17 @@ export default function Home() {
             })
           )
         );
-        setPendingDeletes([]); // เคลียร์ถังขยะ
+        setPendingDeletes([]);
       }
-
-      // 2. จัดการอัปโหลดรูปใหม่ใน Main Slider (Process New Uploads)
       const finalSlider = await Promise.all(
         mainSlider.map(async (item) => {
           if (item.isNew && item.file) {
-            // อัปโหลดของจริง
             const { url, publicId } = await uploadFileToServer(item.file);
-            // คืนค่า Object ใหม่ที่เป็น URL จริง ไม่ใช่ Blob แล้ว
             return { id: item.id, url, publicId };
           }
-          // ถ้าเป็นรูปเก่า หรือไม่มีไฟล์ ก็คืนค่าเดิม
           return { id: item.id, url: item.url, publicId: item.publicId };
         })
       );
-
-      // 3. บันทึกทุกอย่างลง Firestore
       await setDoc(
         doc(db, "pages", "storytelling"),
         { sections, mainSlider: finalSlider },
@@ -304,9 +258,14 @@ export default function Home() {
         { images: album },
         { merge: true }
       );
-      await setDoc(doc(db, "pages", "settings"), { socials }, { merge: true });
 
-      // 4. อัปเดต State หน้าจอให้เป็นข้อมูลล่าสุด
+      // *** (ใหม่) บันทึก heroTitle ไปพร้อมกับ settings ***
+      await setDoc(
+        doc(db, "pages", "settings"),
+        { socials, heroTitle },
+        { merge: true }
+      );
+
       setMainSlider(finalSlider);
       setIsEditing(false);
       alert("✅ บันทึกข้อมูลทั้งหมดเรียบร้อย!");
@@ -322,8 +281,6 @@ export default function Home() {
     setIsEditing(false);
     window.location.reload();
   };
-
-  // ... (Helpers อื่นๆ) ...
   const handleUpdateSection = (
     id: number,
     field: keyof StorySection,
@@ -356,7 +313,7 @@ export default function Home() {
     );
   };
   const removeAlbumImage = (id: string) =>
-    setAlbum((prev) => prev.filter((i) => i.id !== id)); // Album อัปเลยลบเลยแบบง่ายไปก่อน
+    setAlbum((prev) => prev.filter((i) => i.id !== id));
 
   if (loading && !isEditing)
     return (
@@ -400,7 +357,7 @@ export default function Home() {
 
       {showUploader && (
         <ImageUploader
-          onFileSelected={handleFileSelected} // <--- ใช้โหมด Manual (Draft)
+          onFileSelected={handleFileSelected}
           onCancel={() => setShowUploader(false)}
           aspectRatio={uploadTarget?.type === "main-slider" ? 16 / 9 : 4 / 3}
           cropShape="rect"
@@ -449,21 +406,33 @@ export default function Home() {
         )}
       </div>
 
-      {/* --- HEADER --- */}
+      {/* --- HEADER (แก้ไขให้เปลี่ยนข้อความได้) --- */}
       <section className="pt-20 pb-10 flex items-center justify-center bg-gradient-to-b from-indigo-950 to-slate-900">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="text-center px-4"
+          className="text-center px-4 w-full"
         >
-          <h1 className="text-5xl md:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 mb-4">
-            The Stories
-          </h1>
+          {isEditing ? (
+            // โหมดแก้ไข: แสดง Input
+            <input
+              type="text"
+              value={heroTitle}
+              onChange={(e) => setHeroTitle(e.target.value)}
+              className="text-5xl md:text-8xl font-bold bg-transparent border-b-2 border-cyan-500 text-center text-white focus:outline-none w-full max-w-4xl placeholder-slate-500"
+              placeholder="ใส่ชื่อเรื่อง..."
+            />
+          ) : (
+            // โหมดปกติ: แสดง H1
+            <h1 className="text-5xl md:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 mb-4 break-words">
+              {heroTitle}
+            </h1>
+          )}
         </motion.div>
       </section>
 
-      {/* --- NEW: MAIN IMAGE SLIDER (DRAFT MODE) --- */}
+      {/* --- MAIN IMAGE SLIDER --- */}
       <section className="w-full max-w-6xl mx-auto px-4 mb-20">
         <div className="relative w-full aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-black/40">
           {mainSlider.length > 0 ? (
@@ -483,7 +452,6 @@ export default function Home() {
                     alt="Slide"
                     className="w-full h-full object-cover"
                   />
-                  {/* ปุ่มลบในโหมดแก้ไข (ลบได้แม้เหลือรูปเดียว) */}
                   {isEditing && (
                     <button
                       onClick={() => removeMainSliderImage(slide.id)}
@@ -493,7 +461,6 @@ export default function Home() {
                       🗑️
                     </button>
                   )}
-                  {/* Badge บอกว่ารูปใหม่ */}
                   {isEditing && slide.isNew && (
                     <div className="absolute top-4 left-4 bg-green-500 text-white text-xs px-2 py-1 rounded shadow">
                       New (Draft)
@@ -507,8 +474,6 @@ export default function Home() {
               <p>No Images in Slider</p>
             </div>
           )}
-
-          {/* ปุ่มเพิ่มรูป (อยู่กลางจอ ถ้าไม่มีรูป หรือมุมขวาล่างถ้ามีรูป) */}
           {isEditing && (
             <button
               onClick={() => openUploader("main-slider")}
@@ -537,7 +502,6 @@ export default function Home() {
               section.imagePosition === "left" ? "md:flex-row-reverse" : ""
             }`}
           >
-            {/* ปุ่มลบบทความ (จะลบรูปเมื่อกด Save All) */}
             {isEditing && (
               <button
                 onClick={() => handleDeleteSection(section.id)}
@@ -546,7 +510,6 @@ export default function Home() {
                 🗑️ ลบบทความนี้
               </button>
             )}
-
             <div className="flex-1 space-y-6 w-full z-10">
               {isEditing ? (
                 <div className="flex flex-col gap-4 p-6 bg-slate-800 rounded-2xl border border-slate-700 shadow-xl">
@@ -753,7 +716,7 @@ export default function Home() {
                       fill="currentColor"
                       viewBox="0 0 24 24"
                     >
-                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                     </svg>
                   </a>
                 )}

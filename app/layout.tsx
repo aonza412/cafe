@@ -12,6 +12,10 @@ export const metadata: Metadata = {
     "เว็บไซต์เล่าเรื่องราว ประสบการณ์ และความทรงจำ ผ่านภาพถ่ายและตัวอักษร",
   keywords: ["blog", "story", "travel", "portfolio", "nextjs", "firebase"],
   authors: [{ name: "ตะลึงตะลุง" }],
+  verification: {
+    google: "6BtGXt4gSLnFYcZZkxCWlQKMeefFwtss_9E3GlvHHNk",
+  },
+  // <meta name="google-site-verification" content="6BtGXt4gSLnFYcZZkxCWlQKMeefFwtss_9E3GlvHHNk" />
 
   // 2. ข้อมูลสำหรับ Facebook / Line / Discord (Open Graph)
   openGraph: {

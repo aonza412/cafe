@@ -92,7 +92,10 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (currentUser?.email === "uthaipan.aon@gmail.com")
+      if (
+        currentUser?.email === "uthaipan.aon@gmail.com" ||
+        currentUser?.email === "tomaejo@gmail.com"
+      )
         setIsRealAdmin(true); // <--- เช็คเมลคุณ
       else {
         setIsRealAdmin(false);

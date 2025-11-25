@@ -1,59 +1,57 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
-const inter = Inter({ subsets: ["latin"] });
-
-// --- ส่วนสำคัญ: การตั้งค่า SEO และ Social Share ---
 export const metadata: Metadata = {
-  // 1. ข้อมูลพื้นฐานสำหรับ Google
-  title: "ตะลึงตะลุงคาเฟ่",
-  description:
-    "เว็บไซต์เล่าเรื่องราว ประสบการณ์ และความทรงจำ ผ่านภาพถ่ายและตัวอักษร",
-  keywords: [
-    "ตะลึงตะลุง",
-    "ตะลึงตะลุงคาเฟ่",
-    "blog",
-    "photo gallery",
-    "คาเฟ่",
-    "cafe",
-  ],
-  authors: [{ name: "ตะลึงตะลุง" }],
   verification: {
     google: "iw5-Z-JjI9Vmi8rUi4OyN0Cn-SOCTBLDHusXJYkYl_M",
   },
-  // <meta name="google-site-verification" content="iw5-Z-JjI9Vmi8rUi4OyN0Cn-SOCTBLDHusXJYkYl_M" />
-
-  // 2. ข้อมูลสำหรับ Facebook / Line / Discord (Open Graph)
+  title: "ตะลึงตะลุงคาเฟ่ | Talung Talung Cafe",
+  description: "พบกับเรื่องราวและบรรยากาศคาเฟ่ไทยโบราณ ที่อบอุ่นและมีเสน่ห์",
+  keywords: [
+    "คาเฟ่",
+    "ไทยโบราณ",
+    "ร้านกาแฟ",
+    "เรื่องเล่า",
+    "ประวัติ",
+    "ตะลึงตะลุงคาเฟ่",
+    "ตะลึงตะลุง",
+  ],
+  authors: [{ name: "ton" }],
   openGraph: {
     title: "ตะลึงตะลุงคาเฟ่",
-    description: "เข้ามาอ่านเรื่องราวที่น่าสนใจ และดูอัลบั้มภาพสวยๆ ได้ที่นี่",
-    url: "cafe-seven-nu.vercel.app", // ใส่ URL จริงตอน Deploy เสร็จ
-    siteName: "ตะลึงตะลุงคาเฟ่",
+    description: "เข้ามาสัมผัสบรรยากาศคาเฟ่ไทยโบราณที่ไม่เหมือนใคร",
+    url: "https://cafe-seven-nu.vercel.app",
+    siteName: "My Story Platform",
     images: [
       {
-        url: "https://placehold.co/1200x630/png", // *** สำคัญ: รูปที่จะโชว์เวลาแชร์ลิงก์ (ขนาดแนะนำ 1200x630) ***
+        url: "https://placehold.co/1200x630/D2B48C/6C5441?text=Thai+Cafe+Story",
         width: 1200,
         height: 630,
-        alt: "My Story Cover",
+        alt: "Thai Vintage Cafe Cover",
       },
     ],
     locale: "th_TH",
     type: "website",
   },
-
-  // 3. ข้อมูลสำหรับ Twitter / X
   twitter: {
     card: "summary_large_image",
-    title: "ตะลึงตะลุง คาเฟ่",
-    description: "เรื่องราวและการเดินทางที่น่าจดจำ",
-    images: ["https://placehold.co/1200x630/png"], // ใส่ลิงก์รูปเดียวกัน
+    title: "ตะลึงตะลุงคาเฟ่",
+    description: "คาเฟ่ไทยโบราณ ที่มีเรื่องเล่า",
+    images: [
+      "https://placehold.co/1200x630/D2B48C/6C5441?text=Thai+Cafe+Story",
+    ],
   },
-
-  // 4. ไอคอนเว็บ (Favicon)
   icons: {
-    icon: "/favicon.ico", // ต้องมีไฟล์ favicon.ico ในโฟลเดอร์ public
+    icon: "/favicon.ico",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#3E2723",
 };
 
 export default function RootLayout({
@@ -62,8 +60,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="th">
+      <body className="antialiased overflow-x-hidden">
+        {/* 2. ครอบ ThemeProvider ไว้ตรงนี้ เพื่อให้ทุกหน้าใช้ useTheme ได้ */}
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

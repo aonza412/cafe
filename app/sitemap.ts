@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // เปลี่ยนเป็น Domain จริงของคุณที่ได้จาก Vercel
-  const baseUrl = "https://cafe-seven-nu.vercel.app";
+  const baseUrl = "https://cafe-seven-nu.vercel.app/";
 
   return [
     {

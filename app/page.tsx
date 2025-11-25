@@ -94,7 +94,7 @@ export default function Home() {
       setUser(currentUser);
       if (
         currentUser?.email === "uthaipan.aon@gmail.com" ||
-        currentUser?.email === "tomaejo@gmail.com"
+        currentUser?.email === "tonmaejo@gmail.com"
       )
         setIsRealAdmin(true); // <--- เช็คเมลคุณ
       else {

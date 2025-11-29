@@ -458,51 +458,96 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* --- MAIN SLIDER --- */}
+      {/* --- MAIN SLIDER (Custom Navigation) --- */}
       <div className="relative w-full px-4 z-20 -mt-24">
         <div className="max-w-6xl mx-auto">
-          <div className="relative w-full aspect-video md:aspect-[21/9] rounded-lg overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] border-[8px] border-theme-bg bg-black">
+          <div className="relative w-full aspect-video md:aspect-[21/9] rounded-lg overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] border-[8px] border-theme-bg bg-black group">
             {mainSlider.length > 0 ? (
-              <Swiper
-                modules={[Pagination, Navigation, Autoplay, EffectFade]}
-                effect="fade"
-                spaceBetween={0}
-                slidesPerView={1}
-                pagination={{ clickable: true }}
-                navigation={true}
-                autoplay={{ delay: 6000, disableOnInteraction: false }}
-                className="w-full h-full"
-              >
-                {mainSlider.map((slide) => (
-                  <SwiperSlide key={slide.id} className="relative">
-                    <div
-                      className={`w-full h-full ${
-                        !isEditing ? "cursor-zoom-in" : ""
-                      }`}
-                      onClick={() => handleImageClick(slide.url)}
-                    >
-                      <SafeImage
-                        src={slide.url}
-                        alt="Slide"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    {isEditing && (
-                      <button
-                        onClick={() => removeMainSliderImage(slide.id)}
-                        className="absolute top-4 right-4 bg-theme-accent text-white p-2 rounded-full shadow-lg hover:bg-red-700 z-20"
+              <>
+                <Swiper
+                  modules={[Autoplay]} // เอา Navigation ออกจาก modules เพราะเราจะคุมเอง
+                  spaceBetween={0}
+                  slidesPerView={1}
+                  autoplay={{ delay: 6000, disableOnInteraction: false }}
+                  loop={true}
+                  className="w-full h-full"
+                  onSwiper={(swiper) => {
+                    // เก็บค่า swiper instance ไว้ในตัวแปร เพื่อเอาไปผูกกับปุ่มกด
+                    (window as any).swiperInstance = swiper;
+                  }}
+                >
+                  {mainSlider.map((slide) => (
+                    <SwiperSlide key={slide.id} className="relative">
+                      <div
+                        className={`w-full h-full ${
+                          !isEditing ? "cursor-zoom-in" : ""
+                        }`}
+                        onClick={() => handleImageClick(slide.url)}
                       >
-                        🗑️
-                      </button>
-                    )}
-                  </SwiperSlide>
-                ))}
-              </Swiper>
+                        <SafeImage
+                          src={slide.url}
+                          alt="Slide"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {isEditing && (
+                        <button
+                          onClick={() => removeMainSliderImage(slide.id)}
+                          className="absolute top-4 right-4 bg-theme-accent text-white p-2 rounded-full shadow-lg hover:bg-red-700 z-20"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+
+                {/* --- ปุ่มลูกศรซ้าย (Custom Prev) --- */}
+                <button
+                  onClick={() => (window as any).swiperInstance?.slidePrev()}
+                  className="absolute top-1/2 left-4 z-30 -translate-y-1/2 bg-black/50 hover:bg-theme-accent text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* --- ปุ่มลูกศรขวา (Custom Next) --- */}
+                <button
+                  onClick={() => (window as any).swiperInstance?.slideNext()}
+                  className="absolute top-1/2 right-4 z-30 -translate-y-1/2 bg-black/50 hover:bg-theme-accent text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white/30">
                 <p>เพิ่มภาพบรรยากาศที่นี่</p>
               </div>
             )}
+
             {isEditing && (
               <button
                 onClick={() => openUploader("main-slider")}
